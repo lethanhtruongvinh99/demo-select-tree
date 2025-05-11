@@ -80,6 +80,17 @@ const findAllChildLeafs = (node: TreeNodeData): string[] => {
   return node.children.flatMap(findAllChildLeafs);
 };
 
+function filterNode(node: TreeNodeData, keyword: string): TreeNodeData | null {
+  if (!node.children) {
+    if (node.value.includes(keyword)) {
+      return node;
+    } else {
+      return null;
+    }
+  }
+  return { ...node, children: node?.children?.map(value => filterNode(value, keyword))?.filter(value => !!value) };
+}
+
 function filterTree(
   nodes: TreeNodeData[],
   searchValue: string
@@ -118,6 +129,13 @@ function TreeSelect(): JSX.Element {
 
   useEffect(() => {
     const result = filterTree(DUMMY_TREE_DATA, search);
+    const anotherResult: TreeNodeData[] = [];
+    DUMMY_TREE_DATA.forEach((item) => {
+      const found = filterNode(item, search);
+      if (found) {
+        anotherResult.push(found);
+      }
+    })
     setSearchResult(result);
   }, [search]);
 
