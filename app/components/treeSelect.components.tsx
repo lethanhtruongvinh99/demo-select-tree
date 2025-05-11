@@ -1,5 +1,5 @@
 "use client";
-import React, { JSX } from "react";
+import React, { JSX, useEffect } from "react";
 
 /**
  * TreeSelect is a React component that renders a placeholder
@@ -55,6 +55,13 @@ const DUMMY_TREE_DATA: TreeNodeData[] = [
           },
         ],
       },
+      {
+        key: "1-3",
+        value: "Node 1-3",
+        isChecked: false,
+        isExpanded: false,
+        level: 2,
+      },
     ],
   },
   {
@@ -73,16 +80,46 @@ const findAllChildLeafs = (node: TreeNodeData): string[] => {
   return node.children.flatMap(findAllChildLeafs);
 };
 
-// Example usage:
-// const leafKeys = findAllChildLeafs(DUMMY_TREE_DATA[0]);
-// console.log(leafKeys);
+function filterTree(
+  nodes: TreeNodeData[],
+  searchValue: string
+): TreeNodeData[] {
+  return nodes
+    .map((node) => {
+      // Recursively filter children
+      const filteredChildren = node.children
+        ? filterTree(node.children, searchValue)
+        : undefined;
+
+      // Keep the node if its value includes the search string OR if any of its children match
+      if (
+        node.value.toLowerCase().includes(searchValue.toLowerCase()) ||
+        (filteredChildren && filteredChildren.length > 0)
+      ) {
+        return {
+          ...node,
+          children: filteredChildren?.length ? filteredChildren : undefined,
+        };
+      }
+
+      return null;
+    })
+    .filter((node) => node !== null); // Remove null entries
+}
 
 function TreeSelect(): JSX.Element {
-  const [state, setState] = React.useState<string[]>(["1-1"]);
+  const [search, setSearch] = React.useState<string>("");
+  const [state, setState] = React.useState<string[]>([]);
   // can use this way or use the tree data structure
   const [openState, setOpenState] = React.useState<Record<string, boolean>>({
     "1": false,
   });
+  const [searchResult, setSearchResult] = React.useState<TreeNodeData[]>([]);
+
+  useEffect(() => {
+    const result = filterTree(DUMMY_TREE_DATA, search);
+    setSearchResult(result);
+  }, [search]);
 
   const onChecked = (
     key: string,
@@ -116,7 +153,7 @@ function TreeSelect(): JSX.Element {
             <input
               type="checkbox"
               checked={
-                !node.children
+                !node.children || node.children.length === 0
                   ? state.includes(node.key)
                   : findAllChildLeafs(node).every((item) =>
                       state.includes(item)
@@ -141,7 +178,15 @@ function TreeSelect(): JSX.Element {
   return (
     <div>
       <h1>Tree Select Component</h1>
-      {renderTree(DUMMY_TREE_DATA)}
+      <div>
+        <p>Search by key:</p>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+      {renderTree(search ? searchResult : DUMMY_TREE_DATA)}
     </div>
   );
 }
